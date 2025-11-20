@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Agent AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Sales Agent AI</h1>
+            <div class="status-badge">Ready</div>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Auto-Scroll Settings</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="autoScrollEnabled" checked style="cursor: pointer;">
+                        <span>Enable auto-scroll to load full conversation history</span>
+                    </label>
+                    <label style="display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 12px; color: var(--text-secondary);">Max scroll attempts (1-100):</span>
+                        <input type="number" id="maxScrollAttempts" value="50" min="1" max="100"
+                            style="padding: 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-primary); font-size: 13px;">
+                    </label>
+                </div>
+
+                <h2>Analyze Conversation</h2>
+                <p>Extract sales signals and strategies from the current chat.</p>
+                <button id="analyzeBtn" class="btn-primary">
+                    <span class="btn-text">Analyze Now</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+
+            <div id="results" class="results-container hidden">
+                <div class="loading-spinner hidden"></div>
+                <div id="insightsContent"></div>
+            </div>
+
+            <div class="card" style="margin-top: 8px;">
+                <button id="uploadKbBtn" class="btn-secondary">📚 Upload Knowledge Base</button>
+            </div>
+        </main>
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
