@@ -33,7 +33,7 @@ class RAGEngine:
             print(f"Error listing KBs: {e}")
             return ["Sample"]
 
-    def add_document(self, file_path: str, namespace: str = "Sample") -> int:
+    def add_document(self, file_path: str, namespace: str = "Sample", source_name: str = None) -> int:
         """
         Ingests a PDF or Text file into the vector store.
         Returns the number of chunks added.
@@ -46,6 +46,11 @@ class RAGEngine:
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
             docs = [Document(page_content=text, metadata={"source": file_path})]
+
+        # Update source metadata if provided
+        if source_name:
+            for doc in docs:
+                doc.metadata["source"] = source_name
 
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.CHUNK_SIZE, 

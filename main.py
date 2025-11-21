@@ -97,9 +97,10 @@ async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = For
         tmp_path = tmp.name
     
     try:
-        num_chunks = rag.add_document(tmp_path, namespace=kb_name)
-        logger.info(f"Successfully added {num_chunks} chunks from {file.filename} to {kb_name}")
-        return {"status": "success", "chunks_added": num_chunks, "kb_name": kb_name}
+        # Use kb_name as the source name so it appears correctly in the UI
+        chunks_added = rag.add_document(tmp_path, namespace=kb_name, source_name=kb_name)
+        logger.info(f"Successfully added {chunks_added} chunks from {file.filename} to {kb_name}")
+        return {"status": "success", "chunks_added": chunks_added, "kb_name": kb_name}
     except Exception as e:
         logger.error(f"Upload failed for {file.filename}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
