@@ -1,6 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Optional, List
 import os
 import shutil
 import tempfile
@@ -46,6 +49,7 @@ prompt = ChatPromptTemplate.from_messages([
 
 class AnalysisRequest(BaseModel):
     text: str = Field(..., min_length=10, description="The conversation text to analyze")
+    kb_name: Optional[str] = "default"
 
 @app.get("/")
 def read_root():
@@ -57,7 +61,7 @@ def analyze_conversation(request: AnalysisRequest):
         logger.info(f"Analyzing conversation (length: {len(request.text)} chars)")
         
         # 1. Retrieve relevant context from KB
-        docs = rag.search(request.text)
+        docs = rag.search(request.text, namespace=request.kb_name)
         context = "\n\n".join([doc.page_content for doc in docs])
         
         # Get sources to show user which KB is being used
@@ -77,22 +81,28 @@ def analyze_conversation(request: AnalysisRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.post("/upload-kb")
-async def upload_knowledge_base(file: UploadFile = File(...)):
-    logger.info(f"Received file upload: {file.filename}")
+async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = Form("default")):
+    logger.info(f"Received file upload: {file.filename} for KB: {kb_name}")
     # Create a temporary file to store the upload
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
     
     try:
-        num_chunks = rag.add_document(tmp_path)
-        logger.info(f"Successfully added {num_chunks} chunks from {file.filename}")
-        return {"status": "success", "chunks_added": num_chunks}
+        num_chunks = rag.add_document(tmp_path, namespace=kb_name)
+        logger.info(f"Successfully added {num_chunks} chunks from {file.filename} to {kb_name}")
+        return {"status": "success", "chunks_added": num_chunks, "kb_name": kb_name}
     except Exception as e:
         logger.error(f"Upload failed for {file.filename}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
     finally:
         # Clean up the temporary file
         if os.path.exists(tmp_path):
+        if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+@app.get("/knowledge-bases")
+def get_kbs():
+    """Returns a list of available Knowledge Bases."""
+    return {"kbs": rag.list_kbs()}
 

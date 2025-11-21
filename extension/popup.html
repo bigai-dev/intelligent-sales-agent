@@ -31,6 +31,16 @@
                     </label>
                 </div>
 
+                <h2>Knowledge Base</h2>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 12px; color: var(--text-secondary);">Select Knowledge Base:</span>
+                        <select id="kbSelector" style="padding: 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-primary); font-size: 13px; width: 100%;">
+                            <option value="default">Default</option>
+                        </select>
+                    </label>
+                </div>
+
                 <h2>Analyze Conversation</h2>
                 <p>Extract sales signals and strategies from the current chat.</p>
                 <button id="analyzeBtn" class="btn-primary">
@@ -45,7 +55,12 @@
             </div>
 
             <div class="card" style="margin-top: 8px;">
-                <button id="uploadKbBtn" class="btn-secondary">📚 Upload Knowledge Base</button>
+                <h2>Upload Knowledge Base</h2>
+                <div style="margin-bottom: 12px;">
+                    <input type="text" id="newKbName" placeholder="New KB Name (optional)" 
+                        style="padding: 8px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-primary); font-size: 13px; width: 100%; box-sizing: border-box; margin-bottom: 8px;">
+                    <button id="uploadKbBtn" class="btn-secondary">📚 Upload Document</button>
+                </div>
             </div>
         </main>
     </div>

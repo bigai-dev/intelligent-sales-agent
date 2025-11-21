@@ -1,5 +1,29 @@
 const API_URL = 'https://sales-agent-backend-iemq.onrender.com';
 
+// Load available KBs on startup
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch(`${API_URL}/knowledge-bases`);
+        if (res.ok) {
+            const data = await res.json();
+            const selector = document.getElementById('kbSelector');
+            // Keep default option
+            selector.innerHTML = '<option value="default">Default</option>';
+
+            data.kbs.forEach(kb => {
+                if (kb !== 'default') {
+                    const option = document.createElement('option');
+                    option.value = kb;
+                    option.textContent = kb;
+                    selector.appendChild(option);
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Failed to load KBs:", e);
+    }
+});
+
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const btn = document.getElementById('analyzeBtn');
     const results = document.getElementById('results');
@@ -53,7 +77,10 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: response.text }),
+            body: JSON.stringify({
+                text: response.text,
+                kb_name: document.getElementById('kbSelector').value
+            }),
         });
 
         if (!apiRes.ok) {
@@ -195,6 +222,9 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
         try {
             const formData = new FormData();
             formData.append('file', file);
+
+            const kbName = document.getElementById('newKbName').value.trim() || 'default';
+            formData.append('kb_name', kbName);
 
             const response = await fetch(`${API_URL}/upload-kb`, {
                 method: 'POST',

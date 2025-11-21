@@ -4,6 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
 from langchain_core.documents import Document
 from config import settings
 
@@ -11,6 +12,10 @@ class RAGEngine:
     def __init__(self):
         self.embeddings = OpenAIEmbeddings()
         
+        # Initialize Pinecone Client for stats
+        self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+        self.index = self.pc.Index(settings.PINECONE_INDEX_NAME)
+
         # Initialize Pinecone Vector Store
         # Note: The index must be created in Pinecone console beforehand
         self.vector_store = PineconeVectorStore(
@@ -18,7 +23,17 @@ class RAGEngine:
             embedding=self.embeddings
         )
 
-    def add_document(self, file_path: str) -> int:
+    def list_kbs(self) -> List[str]:
+        """Returns a list of available Knowledge Bases (namespaces)."""
+        try:
+            stats = self.index.describe_index_stats()
+            namespaces = list(stats.get('namespaces', {}).keys())
+            return namespaces if namespaces else ["default"]
+        except Exception as e:
+            print(f"Error listing KBs: {e}")
+            return ["default"]
+
+    def add_document(self, file_path: str, namespace: str = "default") -> int:
         """
         Ingests a PDF or Text file into the vector store.
         Returns the number of chunks added.
@@ -37,12 +52,12 @@ class RAGEngine:
             chunk_overlap=settings.CHUNK_OVERLAP
         )
         splits = text_splitter.split_documents(docs)
-        self.vector_store.add_documents(documents=splits)
+        self.vector_store.add_documents(documents=splits, namespace=namespace)
         return len(splits)
 
-    def search(self, query: str, k: int = 3) -> List[Document]:
+    def search(self, query: str, k: int = 3, namespace: str = "default") -> List[Document]:
         """Retrieves relevant documents."""
-        return self.vector_store.similarity_search(query, k=k)
+        return self.vector_store.similarity_search(query, k=k, namespace=namespace)
 
     def get_retriever(self):
         return self.vector_store.as_retriever()
