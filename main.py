@@ -77,7 +77,7 @@ def analyze_conversation(request: AnalysisRequest):
         result = chain.invoke({"context": context_text, "conversation": request.text})
         
         # Add sources to the result
-        result["kb_sources"] = sources
+        result["kb_sources"] = kb_sources
         
         logger.info("Analysis completed successfully")
         return result
