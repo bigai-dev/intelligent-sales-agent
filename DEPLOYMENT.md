@@ -60,6 +60,11 @@ To update your Knowledge Base in the future:
     ```
 4.  Render will automatically redeploy with the new data.
 
+> [!WARNING]
+> **Important Limitation**: Because free hosting servers (Render Free Tier, HF Spaces) have **ephemeral storage**, any files you upload via the Chrome Extension UI will **disappear** when the server restarts (usually after 15 minutes of inactivity).
+>
+> To permanently update your Knowledge Base, you **MUST** follow the steps above (update locally -> push to GitHub).
+
 ---
 
 ## Alternative: Hugging Face Spaces (No Credit Card Required)
