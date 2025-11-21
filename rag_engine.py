@@ -3,17 +3,19 @@ from typing import List
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
+from langchain_pinecone import PineconeVectorStore
 from langchain_core.documents import Document
 from config import settings
 
 class RAGEngine:
-    def __init__(self, persist_directory: str = settings.CHROMA_PERSIST_DIRECTORY):
-        self.persist_directory = persist_directory
+    def __init__(self):
         self.embeddings = OpenAIEmbeddings()
-        self.vector_store = Chroma(
-            persist_directory=self.persist_directory,
-            embedding_function=self.embeddings
+        
+        # Initialize Pinecone Vector Store
+        # Note: The index must be created in Pinecone console beforehand
+        self.vector_store = PineconeVectorStore(
+            index_name=settings.PINECONE_INDEX_NAME,
+            embedding=self.embeddings
         )
 
     def add_document(self, file_path: str) -> int:

@@ -4,8 +4,8 @@ python-multipart
 langchain
 langchain-community
 langchain-openai
-langchain-chroma
-chromadb
+langchain-pinecone
+pinecone-client
 openai
 pypdf
 python-dotenv
