@@ -57,7 +57,8 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         });
 
         if (!apiRes.ok) {
-            throw new Error(`API Error: ${apiRes.statusText}`);
+            const errorData = await apiRes.json().catch(() => ({}));
+            throw new Error(errorData.detail || `API Error: ${apiRes.statusText}`);
         }
 
         const data = await apiRes.json();
@@ -201,7 +202,8 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             });
 
             if (!response.ok) {
-                throw new Error('Upload failed');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Upload failed');
             }
 
             const data = await response.json();
