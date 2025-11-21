@@ -55,14 +55,24 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         const maxScrollAttempts = parseInt(document.getElementById('maxScrollAttempts').value) || 50;
 
         // Send message to content script with settings
-        const response = await chrome.tabs.sendMessage(activeTab.id, {
-            action: "get_text",
-            autoScroll: autoScrollEnabled,
-            maxAttempts: maxScrollAttempts
-        });
+        try {
+            const response = await chrome.tabs.sendMessage(activeTab.id, {
+                action: "get_text",
+                autoScroll: autoScrollEnabled,
+                maxAttempts: maxScrollAttempts
+            });
 
-        if (!response || !response.text) {
-            throw new Error("Could not extract text from page.");
+            if (!response || !response.text) {
+                throw new Error("Could not extract text from page.");
+            }
+
+            // Continue with analysis...
+            var extractedText = response.text; // Store for later use
+        } catch (err) {
+            if (err.message.includes("Receiving end does not exist")) {
+                throw new Error("Please refresh the Messenger page and try again.");
+            }
+            throw err;
         }
 
         content.innerHTML = `
@@ -72,16 +82,25 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         `;
 
         // Call Backend
-        const apiRes = await fetch(`${API_URL}/analyze`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                text: response.text,
-                kb_name: document.getElementById('kbSelector').value
-            }),
-        });
+        // Call Backend
+        let apiRes;
+        try {
+            apiRes = await fetch(`${API_URL}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: extractedText,
+                    kb_name: document.getElementById('kbSelector').value
+                }),
+            });
+        } catch (err) {
+            if (err.message.includes("Failed to fetch")) {
+                throw new Error("Could not connect to server. Please check your internet connection.");
+            }
+            throw err;
+        }
 
         if (!apiRes.ok) {
             const errorData = await apiRes.json().catch(() => ({}));
@@ -97,11 +116,13 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         html += `
             <div class="section">
                 <details style="margin-bottom: 16px;">
-                    <summary class="extracted-text-summary">📄 View Extracted Conversation (${response.text.length} characters)</summary>
+                <details style="margin-bottom: 16px;">
+                    <summary class="extracted-text-summary">📄 View Extracted Conversation (${extractedText.length} characters)</summary>
                     <div class="extracted-text-container">
-                        ${response.text.substring(0, 2000)}
-                        ${response.text.length > 2000 ? '\n\n... (truncated for display, full text sent to AI)' : ''}
+                        ${extractedText.substring(0, 2000)}
+                        ${extractedText.length > 2000 ? '\n\n... (truncated for display, full text sent to AI)' : ''}
                     </div>
+                </details>
                 </details>
             </div>
         `;
