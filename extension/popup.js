@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://sales-agent-backend-iemq.onrender.com';
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const btn = document.getElementById('analyzeBtn');
