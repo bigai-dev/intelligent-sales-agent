@@ -164,7 +164,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 
         if (!apiRes.ok) {
             const errorData = await apiRes.json().catch(() => ({}));
-            throw new Error(errorData.detail || `API Error: ${apiRes.statusText}`);
+            throw new Error(errorData.detail || `API Error: ${apiRes.status} ${apiRes.statusText}`);
         }
 
         const data = await apiRes.json();

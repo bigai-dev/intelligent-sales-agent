@@ -60,16 +60,21 @@ def analyze_conversation(request: AnalysisRequest):
     try:
         logger.info(f"Analyzing conversation (length: {len(request.text)} chars)")
         
-        # 1. Retrieve relevant context from KB
-        docs = rag.search(request.text, namespace=request.kb_name)
-        context = "\n\n".join([doc.page_content for doc in docs])
+        # Retrieve relevant documents
+        docs = rag.search(request.text, k=3, namespace=request.kb_name)
         
-        # Get sources to show user which KB is being used
-        sources = list(set([doc.metadata.get("source", "Unknown") for doc in docs]))
-        logger.info(f"Retrieved {len(docs)} documents from sources: {sources}")
+        if not docs:
+            logger.warning(f"No documents found in KB '{request.kb_name}'. Analysis will proceed without context.")
+            context_text = "No specific knowledge base context available."
+            kb_sources = []
+        else:
+            context_text = "\n\n".join([d.page_content for d in docs])
+            kb_sources = list(set([d.metadata.get("source", "unknown") for d in docs]))
+        
+        logger.info(f"Retrieved {len(docs)} documents from sources: {kb_sources}")
         
         chain = prompt | llm | JsonOutputParser()
-        result = chain.invoke({"context": context, "conversation": request.text})
+        result = chain.invoke({"context": context_text, "conversation": request.text})
         
         # Add sources to the result
         result["kb_sources"] = sources

@@ -62,9 +62,16 @@ class RAGEngine:
     def reset_index(self):
         """Deletes all vectors and re-uploads the sample KB."""
         try:
-            # Delete all namespaces
-            self.index.delete(delete_all=True)
+            # Delete all namespaces individually (Serverless doesn't support delete_all)
+            stats = self.index.describe_index_stats()
+            namespaces = list(stats.get('namespaces', {}).keys())
             
+            for ns in namespaces:
+                try:
+                    self.index.delete(delete_all=True, namespace=ns)
+                except Exception as ns_e:
+                    print(f"Error deleting namespace {ns}: {ns_e}")
+
             # Re-upload sample KB
             sample_path = "sample_knowledge_base.txt"
             if os.path.exists(sample_path):
