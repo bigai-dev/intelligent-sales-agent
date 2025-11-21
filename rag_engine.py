@@ -28,12 +28,12 @@ class RAGEngine:
         try:
             stats = self.index.describe_index_stats()
             namespaces = list(stats.get('namespaces', {}).keys())
-            return namespaces if namespaces else ["default"]
+            return namespaces if namespaces else ["Sample"]
         except Exception as e:
             print(f"Error listing KBs: {e}")
-            return ["default"]
+            return ["Sample"]
 
-    def add_document(self, file_path: str, namespace: str = "default") -> int:
+    def add_document(self, file_path: str, namespace: str = "Sample") -> int:
         """
         Ingests a PDF or Text file into the vector store.
         Returns the number of chunks added.
@@ -55,9 +55,25 @@ class RAGEngine:
         self.vector_store.add_documents(documents=splits, namespace=namespace)
         return len(splits)
 
-    def search(self, query: str, k: int = 3, namespace: str = "default") -> List[Document]:
+    def search(self, query: str, k: int = 3, namespace: str = "Sample") -> List[Document]:
         """Retrieves relevant documents."""
         return self.vector_store.similarity_search(query, k=k, namespace=namespace)
+
+    def reset_index(self):
+        """Deletes all vectors and re-uploads the sample KB."""
+        try:
+            # Delete all namespaces
+            self.index.delete(delete_all=True)
+            
+            # Re-upload sample KB
+            sample_path = "sample_knowledge_base.txt"
+            if os.path.exists(sample_path):
+                self.add_document(sample_path, namespace="Sample")
+                return True
+            return False
+        except Exception as e:
+            print(f"Error resetting index: {e}")
+            raise e
 
     def get_retriever(self):
         return self.vector_store.as_retriever()

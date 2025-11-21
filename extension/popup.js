@@ -1,28 +1,40 @@
 const API_URL = 'https://sales-agent-backend-iemq.onrender.com';
 
-// Load available KBs on startup
-document.addEventListener('DOMContentLoaded', async () => {
+// Function to load KBs
+async function loadKbs() {
     try {
         const res = await fetch(`${API_URL}/knowledge-bases`);
         if (res.ok) {
             const data = await res.json();
             const selector = document.getElementById('kbSelector');
-            // Keep default option
-            selector.innerHTML = '<option value="default">Default</option>';
+            const currentSelection = selector.value;
+
+            // Reset selector
+            selector.innerHTML = '<option value="Sample">Sample</option>';
 
             data.kbs.forEach(kb => {
-                if (kb !== 'default') {
+                if (kb !== 'Sample' && kb !== 'default') {
                     const option = document.createElement('option');
                     option.value = kb;
                     option.textContent = kb;
                     selector.appendChild(option);
                 }
             });
+
+            // Restore selection if it still exists, otherwise default to Sample
+            if (Array.from(selector.options).some(opt => opt.value === currentSelection)) {
+                selector.value = currentSelection;
+            } else {
+                selector.value = "Sample";
+            }
         }
     } catch (e) {
         console.error("Failed to load KBs:", e);
     }
-});
+}
+
+// Load available KBs on startup
+document.addEventListener('DOMContentLoaded', loadKbs);
 
 document.getElementById('analyzeBtn').addEventListener('click', async () => {
     const btn = document.getElementById('analyzeBtn');
@@ -244,7 +256,15 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             const formData = new FormData();
             formData.append('file', file);
 
-            const kbName = document.getElementById('newKbName').value.trim() || 'default';
+            const kbName = document.getElementById('newKbName').value.trim();
+
+            if (!kbName) {
+                alert("❌ Please enter a name for the Knowledge Base.");
+                btn.disabled = false;
+                btn.textContent = originalText;
+                return;
+            }
+
             formData.append('kb_name', kbName);
 
             const response = await fetch(`${API_URL}/upload-kb`, {
@@ -258,17 +278,56 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             }
 
             const data = await response.json();
-            alert(`✅ Knowledge base updated! Added ${data.chunks_added} chunks.`);
+            alert(`✅ Knowledge base updated! Added ${data.chunks_added} chunks to "${data.kb_name}".`);
+
+            // Auto-refresh KB list
+            await loadKbs();
+            // Select the new KB
+            document.getElementById('kbSelector').value = data.kb_name;
 
         } catch (error) {
             alert(`❌ Error uploading file: ${error.message}`);
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
+            // Clear file input
+            fileInput.value = '';
         }
     });
 
     // Trigger file selection
     fileInput.click();
+});
+
+// Reset Knowledge Base Button
+document.getElementById('resetKbBtn').addEventListener('click', async () => {
+    if (!confirm("Are you sure? This will DELETE ALL Knowledge Bases and restore the Sample KB.")) {
+        return;
+    }
+
+    const btn = document.getElementById('resetKbBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Resetting...';
+
+    try {
+        const response = await fetch(`${API_URL}/reset-kb`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Reset failed');
+        }
+
+        alert("✅ Knowledge Base has been reset to Sample.");
+        await loadKbs();
+        document.getElementById('kbSelector').value = "Sample";
+
+    } catch (error) {
+        alert(`❌ Error resetting KB: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 });
 

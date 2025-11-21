@@ -49,7 +49,7 @@ prompt = ChatPromptTemplate.from_messages([
 
 class AnalysisRequest(BaseModel):
     text: str = Field(..., min_length=10, description="The conversation text to analyze")
-    kb_name: Optional[str] = "default"
+    kb_name: Optional[str] = "Sample"
 
 @app.get("/")
 def read_root():
@@ -81,7 +81,10 @@ def analyze_conversation(request: AnalysisRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.post("/upload-kb")
-async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = Form("default")):
+async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = Form(...)):
+    if not kb_name or kb_name.strip() == "":
+        raise HTTPException(status_code=400, detail="KB Name is required")
+    
     logger.info(f"Received file upload: {file.filename} for KB: {kb_name}")
     # Create a temporary file to store the upload
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
@@ -104,4 +107,14 @@ async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = For
 def get_kbs():
     """Returns a list of available Knowledge Bases."""
     return {"kbs": rag.list_kbs()}
+
+@app.post("/reset-kb")
+def reset_knowledge_base():
+    """Resets the Pinecone index and restores the sample KB."""
+    try:
+        rag.reset_index()
+        return {"status": "success", "message": "Knowledge Base reset to Sample"}
+    except Exception as e:
+        logger.error("Reset failed", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
