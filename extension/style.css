@@ -322,6 +322,14 @@ p {
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.copy-indicator.show {
+    opacity: 1;
 }
 
 /* Toast Styles */
