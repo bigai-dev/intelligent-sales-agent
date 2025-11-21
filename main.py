@@ -98,7 +98,6 @@ async def upload_knowledge_base(file: UploadFile = File(...), kb_name: str = For
     finally:
         # Clean up the temporary file
         if os.path.exists(tmp_path):
-        if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
 @app.get("/knowledge-bases")
