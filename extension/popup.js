@@ -33,6 +33,54 @@ async function loadKbs() {
     }
 }
 
+// Helper: Show Toast Notification
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 300);
+    }, 3000);
+
+    toast.classList.remove('hidden');
+}
+
+// Helper: Show Custom Modal
+function showModal(title, message, onConfirm) {
+    const modal = document.getElementById('customModal');
+    const titleEl = document.getElementById('modalTitle');
+    const msgEl = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('modalConfirm');
+    const cancelBtn = document.getElementById('modalCancel');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+
+    modal.classList.remove('hidden');
+
+    const cleanup = () => {
+        modal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+    };
+
+    const handleConfirm = () => {
+        cleanup();
+        onConfirm();
+    };
+
+    const handleCancel = () => {
+        cleanup();
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+}
+
 // Load available KBs on startup
 document.addEventListener('DOMContentLoaded', loadKbs);
 
@@ -259,7 +307,7 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             const kbName = document.getElementById('newKbName').value.trim();
 
             if (!kbName) {
-                alert("❌ Please enter a name for the Knowledge Base.");
+                showToast("❌ Please enter a name for the Knowledge Base.", "error");
                 btn.disabled = false;
                 btn.textContent = originalText;
                 return;
@@ -278,7 +326,7 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             }
 
             const data = await response.json();
-            alert(`✅ Knowledge base updated! Added ${data.chunks_added} chunks to "${data.kb_name}".`);
+            showToast(`✅ Added ${data.chunks_added} chunks to "${data.kb_name}".`);
 
             // Auto-refresh KB list
             await loadKbs();
@@ -286,7 +334,7 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
             document.getElementById('kbSelector').value = data.kb_name;
 
         } catch (error) {
-            alert(`❌ Error uploading file: ${error.message}`);
+            showToast(`❌ Error uploading file: ${error.message}`, "error");
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -300,34 +348,36 @@ document.getElementById('uploadKbBtn').addEventListener('click', () => {
 });
 
 // Reset Knowledge Base Button
-document.getElementById('resetKbBtn').addEventListener('click', async () => {
-    if (!confirm("Are you sure? This will DELETE ALL Knowledge Bases and restore the Sample KB.")) {
-        return;
-    }
+document.getElementById('resetKbBtn').addEventListener('click', () => {
+    showModal(
+        "Reset Knowledge Base",
+        "Are you sure? This will DELETE ALL Knowledge Bases and restore the Sample KB.",
+        async () => {
+            const btn = document.getElementById('resetKbBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Resetting...';
 
-    const btn = document.getElementById('resetKbBtn');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Resetting...';
+            try {
+                const response = await fetch(`${API_URL}/reset-kb`, {
+                    method: 'POST'
+                });
 
-    try {
-        const response = await fetch(`${API_URL}/reset-kb`, {
-            method: 'POST'
-        });
+                if (!response.ok) {
+                    throw new Error('Reset failed');
+                }
 
-        if (!response.ok) {
-            throw new Error('Reset failed');
+                showToast("✅ Knowledge Base reset to Sample.");
+                await loadKbs();
+                document.getElementById('kbSelector').value = "Sample";
+
+            } catch (error) {
+                showToast(`❌ Error: ${error.message}`, "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
         }
-
-        alert("✅ Knowledge Base has been reset to Sample.");
-        await loadKbs();
-        document.getElementById('kbSelector').value = "Sample";
-
-    } catch (error) {
-        alert(`❌ Error resetting KB: ${error.message}`);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-    }
+    );
 });
 
