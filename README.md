@@ -12,15 +12,8 @@ An AI-powered Chrome Extension that analyzes Messenger conversations to extract 
 ### 1. Backend Setup
 
 ```bash
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Create .env file with your OpenAI API key
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
-
-# Start the FastAPI server
-uvicorn main:app --reload
+# Run the setup script (handles venv, dependencies, and server)
+./run_backend.sh
 ```
 
 The backend will run at `http://localhost:8000`
