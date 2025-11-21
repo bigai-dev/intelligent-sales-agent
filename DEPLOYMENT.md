@@ -59,3 +59,25 @@ To update your Knowledge Base in the future:
     git push
     ```
 4.  Render will automatically redeploy with the new data.
+
+---
+
+## Alternative: Hugging Face Spaces (No Credit Card Required)
+
+If Render asks for a credit card and you don't want to provide one, use **Hugging Face Spaces**.
+
+1.  **Sign Up**: Go to [huggingface.co](https://huggingface.co) and create an account.
+2.  **Create Space**:
+    - Click **New Space**.
+    - Name: `sales-agent-backend`
+    - SDK: **Docker**
+    - Hardware: **Free**
+3.  **Deploy**:
+    - Hugging Face will give you a git command to clone the space.
+    - Copy the contents of this project into that folder.
+    - Push to the Hugging Face remote.
+4.  **Environment Variables**:
+    - Go to **Settings** in your Space.
+    - Scroll to **Variables and secrets**.
+    - Add `OPENAI_API_KEY` as a **Secret**.
+
