@@ -166,52 +166,107 @@ async function performAutoScroll(scrollContainer, conversationContainer, allMess
 }
 
 function extractMessagesFromDOM(container, messageArray) {
+    // System messages to filter out
+    const SYSTEM_FILTERS = [
+        'Messages and calls are secured',
+        'end-to-end encryption',
+        'Active now',
+        'Active Status',
+        'You can now message',
+        'Learn more',
+        'deleted a message',
+        'deleted a previous conversation',
+        'You sent an attachment',
+        'sent an attachment',
+        'Forwarded',
+        'Seen by'
+    ];
+
+    // Get prospect name from conversation header if possible
+    let prospectName = 'Prospect';
+    const headerName = container.querySelector('h1, [role="heading"]');
+    if (headerName) {
+        const nameText = headerName.textContent.trim();
+        if (nameText && nameText.length > 0 && nameText.length < 50) {
+            prospectName = nameText;
+        }
+    }
+
     const messageGroups = container.querySelectorAll('[role="row"]');
+
     messageGroups.forEach(msgGroup => {
-        const fullText = msgGroup.textContent.trim();
+        // Skip if this is a system message
+        const fullText = msgGroup.textContent || '';
+        if (SYSTEM_FILTERS.some(filter => fullText.includes(filter))) {
+            return;
+        }
 
-        // Skip date separators and metadata
-        if (fullText.length < 30 && fullText.match(/\d{4}/)) return;
-        if (fullText === 'Enter' || fullText.length < 3) return;
+        // Skip very short or empty messages
+        if (fullText.trim().length < 3) {
+            return;
+        }
 
-        // Try to identify sender
-        let sender = 'Unknown';
+        // Try to identify sender using aria-label first
+        let sender = prospectName;
         const ariaLabel = msgGroup.getAttribute('aria-label') || '';
 
-        if (ariaLabel.includes('You sent') || ariaLabel.startsWith('You said')) {
+        if (ariaLabel.includes('You sent') || ariaLabel.includes('You said')) {
             sender = 'You';
-        } else {
-            // Try to extract sender name from aria-label
-            // Common patterns: "John sent", "Jane said"
+        } else if (ariaLabel) {
+            // Try to extract name from aria-label patterns
             const senderMatch = ariaLabel.match(/^([\w\s]+)\s+(sent|said)/i);
             if (senderMatch) {
                 sender = senderMatch[1].trim();
-            } else {
-                // Fallback: check if there's a name element at the start
-                const nameElement = msgGroup.querySelector('span[dir="auto"]');
-                if (nameElement) {
-                    const potentialName = nameElement.textContent.trim();
-                    // If it's short and doesn't contain the full message, it's likely a name
-                    if (potentialName.length < 30 && potentialName.length > 0 && !fullText.startsWith(potentialName)) {
-                        sender = potentialName;
-                    }
-                }
             }
         }
 
-        // Clean message text
-        let cleanText = fullText
+        // Extract the actual message content
+        // Look for text divs that aren't metadata
+        let messageText = '';
+
+        // Try to find the message content div
+        const textDivs = msgGroup.querySelectorAll('div[dir="auto"]');
+        for (const div of textDivs) {
+            const text = div.textContent || '';
+            // Skip if it's just metadata
+            if (text.includes('Active now') ||
+                text.includes('sent an attachment') ||
+                text.length < 2) {
+                continue;
+            }
+
+            // If this looks like actual message content, use it
+            if (text.length > messageText.length && text.length < 5000) {
+                messageText = text;
+            }
+        }
+
+        // Fallback to full text if we couldn't find specific content
+        if (!messageText) {
+            messageText = fullText;
+        }
+
+        // Clean the message text
+        messageText = messageText
             .replace(/\bEnter\b/g, '')
-            .replace(/^\d{2}\/\d{2}\/\d{4},\s*\d{2}:\d{2}:\s*/, '')
-            .replace(/You replied to \w+\s*/g, '')
+            .replace(/Active now/gi, '')
+            .replace(/You sent/gi, '')
+            .replace(/\s+/g, ' ')  // Normalize whitespace
             .trim();
 
-        if (cleanText.length > 5) {
-            // Format as "Sender: Message" and check for duplicates
-            const formattedMessage = `${sender}: ${cleanText}`;
-            if (!messageArray.includes(formattedMessage)) {
-                messageArray.push(formattedMessage);
-            }
+        // Skip if after cleaning it's too short or matches system patterns
+        if (messageText.length < 3 ||
+            SYSTEM_FILTERS.some(filter => messageText.includes(filter))) {
+            return;
+        }
+
+        // Format and add to array
+        const formattedMessage = `${sender}: ${messageText}`;
+
+        // Check for duplicates
+        if (!messageArray.includes(formattedMessage) &&
+            !messageArray.some(m => m.includes(messageText))) {
+            messageArray.push(formattedMessage);
         }
     });
 }
