@@ -206,17 +206,27 @@ function extractMessagesFromDOM(container, messageArray) {
             return;
         }
 
-        // Try to identify sender using aria-label first
-        let sender = prospectName;
-        const ariaLabel = msgGroup.getAttribute('aria-label') || '';
+        // Detect sender based on Messenger's DOM structure
+        // Right messages (You) have "You sent" in the heading
+        // Left messages (Prospect) have the prospect's name in the heading
+        let sender = 'Prospect';
 
-        if (ariaLabel.includes('You sent') || ariaLabel.includes('You said')) {
-            sender = 'You';
-        } else if (ariaLabel) {
-            // Try to extract name from aria-label patterns
-            const senderMatch = ariaLabel.match(/^([\w\s]+)\s+(sent|said)/i);
-            if (senderMatch) {
-                sender = senderMatch[1].trim();
+        // Strategy 1: Check the h5 heading for "You sent"
+        const heading = msgGroup.querySelector('h5 span');
+        if (heading) {
+            const headingText = heading.textContent.trim();
+            if (headingText === 'You sent' || headingText === 'You said') {
+                sender = 'You';
+            }
+        }
+
+        // Strategy 2: Check for specific Messenger classes that indicate message direction
+        // Right-aligned messages (yours) have class x15zctf7
+        // Left-aligned messages (theirs) have class x1q0g3np
+        if (sender === 'Prospect') {
+            const messageContainer = msgGroup.querySelector('.x15zctf7');
+            if (messageContainer) {
+                sender = 'You';
             }
         }
 
