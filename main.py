@@ -51,9 +51,24 @@ class AnalysisRequest(BaseModel):
     text: str = Field(..., min_length=10, description="The conversation text to analyze")
     kb_name: Optional[str] = "Sample"
 
+class ErrorLog(BaseModel):
+    message: str
+    stack: Optional[str] = None
+    context: Optional[str] = None
+    url: Optional[str] = None
+    userAgent: Optional[str] = None
+    timestamp: Optional[str] = None
+
 @app.get("/")
 def read_root():
     return {"status": "Sales Agent Backend Running"}
+
+@app.post("/log_error")
+def log_error(error: ErrorLog):
+    logger.error(f"CLIENT ERROR: {error.message} | Context: {error.context} | URL: {error.url}")
+    if error.stack:
+        logger.error(f"Stack Trace: {error.stack}")
+    return {"status": "logged"}
 
 @app.post("/analyze")
 def analyze_conversation(request: AnalysisRequest):

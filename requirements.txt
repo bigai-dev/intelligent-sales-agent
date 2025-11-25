@@ -5,7 +5,7 @@ langchain
 langchain-community
 langchain-openai
 langchain-pinecone
-pinecone-client
+pinecone
 openai
 pypdf
 python-dotenv

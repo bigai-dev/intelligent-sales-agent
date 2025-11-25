@@ -81,6 +81,30 @@ function showModal(title, message, onConfirm) {
     cancelBtn.addEventListener('click', handleCancel);
 }
 
+// Helper: Log Error to Backend
+async function logErrorToBackend(error, context = {}) {
+    try {
+        const payload = {
+            message: error.message || String(error),
+            stack: error.stack,
+            context: JSON.stringify(context),
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+        };
+
+        // Use sendBeacon for reliability during unload, or fetch otherwise
+        // Since we are in a popup/extension, fetch is usually fine.
+        await fetch(`${API_URL}/log_error`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        console.error("Failed to log error to backend:", e);
+    }
+}
+
 // Load available KBs on startup
 document.addEventListener('DOMContentLoaded', loadKbs);
 
@@ -129,6 +153,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
             // Continue with analysis...
             var extractedText = response.text; // Store for later use
         } catch (err) {
+            await logErrorToBackend(err, { context: "content_script_communication", tabId: activeTab.id });
             if (err.message.includes("Receiving end does not exist")) {
                 throw new Error("Please refresh the Messenger page and try again.");
             }

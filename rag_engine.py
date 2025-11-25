@@ -13,18 +13,30 @@ class RAGEngine:
         self.embeddings = OpenAIEmbeddings()
         
         # Initialize Pinecone Client for stats
-        self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-        self.index = self.pc.Index(settings.PINECONE_INDEX_NAME)
+        try:
+            if not settings.PINECONE_API_KEY:
+                raise ValueError("PINECONE_API_KEY not set")
+                
+            self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+            self.index = self.pc.Index(settings.PINECONE_INDEX_NAME)
 
-        # Initialize Pinecone Vector Store
-        # Note: The index must be created in Pinecone console beforehand
-        self.vector_store = PineconeVectorStore(
-            index_name=settings.PINECONE_INDEX_NAME,
-            embedding=self.embeddings
-        )
+            # Initialize Pinecone Vector Store
+            # Note: The index must be created in Pinecone console beforehand
+            self.vector_store = PineconeVectorStore(
+                index_name=settings.PINECONE_INDEX_NAME,
+                embedding=self.embeddings
+            )
+            self.initialized = True
+        except Exception as e:
+            print(f"Warning: Failed to initialize Pinecone: {e}. RAG features will be disabled.")
+            self.initialized = False
+            self.vector_store = None
+            self.index = None
 
     def list_kbs(self) -> List[str]:
         """Returns a list of available Knowledge Bases (namespaces)."""
+        if not self.initialized:
+            return ["Sample"]
         try:
             stats = self.index.describe_index_stats()
             namespaces = list(stats.get('namespaces', {}).keys())
@@ -38,6 +50,8 @@ class RAGEngine:
         Ingests a PDF or Text file into the vector store.
         Returns the number of chunks added.
         """
+        if not self.initialized:
+            raise RuntimeError("RAG Engine not initialized (missing API key)")
         if file_path.endswith(".pdf"):
             loader = PyPDFLoader(file_path)
             docs = loader.load()
@@ -62,10 +76,14 @@ class RAGEngine:
 
     def search(self, query: str, k: int = 3, namespace: str = "Sample") -> List[Document]:
         """Retrieves relevant documents."""
+        if not self.initialized:
+            return []
         return self.vector_store.similarity_search(query, k=k, namespace=namespace)
 
     def reset_index(self):
         """Deletes all vectors and re-uploads the sample KB."""
+        if not self.initialized:
+            return False
         try:
             # Delete all namespaces individually (Serverless doesn't support delete_all)
             stats = self.index.describe_index_stats()
@@ -88,4 +106,6 @@ class RAGEngine:
             raise e
 
     def get_retriever(self):
+        if not self.initialized:
+            return None
         return self.vector_store.as_retriever()

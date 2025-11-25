@@ -1,5 +1,28 @@
 const DEBUG = false;
 
+const API_URL = 'https://sales-agent-backend-iemq.onrender.com';
+
+async function logErrorToBackend(error, context = {}) {
+    try {
+        const payload = {
+            message: error.message || String(error),
+            stack: error.stack,
+            context: JSON.stringify(context),
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+        };
+
+        await fetch(`${API_URL}/log_error`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        console.error("Failed to log error to backend:", e);
+    }
+}
+
 function log(...args) {
     if (DEBUG) console.log('[SalesAgent]', ...args);
 }
@@ -58,6 +81,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
             } catch (error) {
                 console.error('Error extracting conversation:', error);
+                await logErrorToBackend(error, { context: "content_script_extraction" });
                 return { text: document.body.innerText };
             }
         }
