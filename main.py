@@ -42,8 +42,10 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", """Context from Knowledge Base:
     {context}
 
-    Conversation History:
+    Conversation History (ordered from LATEST to OLDEST messages):
     {conversation}
+    
+    Note: Messages are formatted as "Sender: Message". "You" refers to the sales agent (user). The most recent exchange is at the top.
     """)
 ])
 

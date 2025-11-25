@@ -52,8 +52,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 let scrollContainer = findScrollContainer(conversationContainer);
                 log('Found scroll container:', scrollContainer);
 
-                // Collect messages as we scroll
-                let allMessages = new Set();
+                // Collect messages as we scroll (use Array to preserve order)
+                let allMessages = [];
 
                 if (scrollContainer && autoScrollEnabled) {
                     await performAutoScroll(scrollContainer, conversationContainer, allMessages, maxAttempts);
@@ -61,8 +61,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     log('Auto-scroll disabled or container not found - extracting visible messages');
                 }
 
-                // Convert Set to string
-                let conversationText = Array.from(allMessages).join('\n\n');
+                // Convert array to string
+                let conversationText = allMessages.join('\n\n');
 
                 // Fallback if no messages collected
                 if (!conversationText.trim()) {
@@ -165,7 +165,7 @@ async function performAutoScroll(scrollContainer, conversationContainer, allMess
     }
 }
 
-function extractMessagesFromDOM(container, messageSet) {
+function extractMessagesFromDOM(container, messageArray) {
     const messageGroups = container.querySelectorAll('[role="row"]');
     messageGroups.forEach(msgGroup => {
         const fullText = msgGroup.textContent.trim();
@@ -174,7 +174,32 @@ function extractMessagesFromDOM(container, messageSet) {
         if (fullText.length < 30 && fullText.match(/\d{4}/)) return;
         if (fullText === 'Enter' || fullText.length < 3) return;
 
-        // Clean and add to set
+        // Try to identify sender
+        let sender = 'Unknown';
+        const ariaLabel = msgGroup.getAttribute('aria-label') || '';
+
+        if (ariaLabel.includes('You sent') || ariaLabel.startsWith('You said')) {
+            sender = 'You';
+        } else {
+            // Try to extract sender name from aria-label
+            // Common patterns: "John sent", "Jane said"
+            const senderMatch = ariaLabel.match(/^([\w\s]+)\s+(sent|said)/i);
+            if (senderMatch) {
+                sender = senderMatch[1].trim();
+            } else {
+                // Fallback: check if there's a name element at the start
+                const nameElement = msgGroup.querySelector('span[dir="auto"]');
+                if (nameElement) {
+                    const potentialName = nameElement.textContent.trim();
+                    // If it's short and doesn't contain the full message, it's likely a name
+                    if (potentialName.length < 30 && potentialName.length > 0 && !fullText.startsWith(potentialName)) {
+                        sender = potentialName;
+                    }
+                }
+            }
+        }
+
+        // Clean message text
         let cleanText = fullText
             .replace(/\bEnter\b/g, '')
             .replace(/^\d{2}\/\d{2}\/\d{4},\s*\d{2}:\d{2}:\s*/, '')
@@ -182,7 +207,11 @@ function extractMessagesFromDOM(container, messageSet) {
             .trim();
 
         if (cleanText.length > 5) {
-            messageSet.add(cleanText);
+            // Format as "Sender: Message" and check for duplicates
+            const formattedMessage = `${sender}: ${cleanText}`;
+            if (!messageArray.includes(formattedMessage)) {
+                messageArray.push(formattedMessage);
+            }
         }
     });
 }
