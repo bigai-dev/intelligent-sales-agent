@@ -24,11 +24,13 @@ class Config:
     1. Analyze the conversation for key signals (interest, objections, next steps).
     2. Cross-reference with the knowledge base to find the best strategies.
     3. Generate 3 specific, actionable strategies (in simple English).
-    4. Generate 3 suggested follow-up messages that the user can copy and paste (natural and human-sounding).
+       - CRITICAL: For each strategy, you MUST quote the specific part of the conversation that triggered this insight. Format: "Because the prospect said '[quote]', you should..."
+    4. Generate 3 suggested follow-up messages that the user can copy and paste.
+       - CRITICAL: These messages must be relevant to the LATEST part of the conversation. Do not suggest opening lines if they are already deep in discussion.
 
     Output ONLY valid JSON in the following format:
     {{
-        "insights": ["insight 1", "insight 2", ...],
+        "insights": ["insight 1 (with quote)", "insight 2 (with quote)", ...],
         "strategies": ["strategy 1", "strategy 2", ...],
         "suggested_messages": ["message 1", "message 2", ...]
     }}
