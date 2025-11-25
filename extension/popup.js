@@ -193,6 +193,19 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         }
 
         const data = await apiRes.json();
+        console.log('[SalesAgent] Received API response:', data);
+
+        // Defensive check
+        if (!content) {
+            console.error('[SalesAgent] Content element not found!');
+            throw new Error('UI rendering failed: content element missing');
+        }
+
+        // Validate data structure
+        if (!data || typeof data !== 'object') {
+            console.error('[SalesAgent] Invalid data structure:', data);
+            throw new Error('Invalid response from API');
+        }
 
         // Render Results with improved formatting
         let html = '';
@@ -201,13 +214,11 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
         html += `
             <div class="section">
                 <details style="margin-bottom: 16px;">
-                <details style="margin-bottom: 16px;">
                     <summary class="extracted-text-summary">📄 View Extracted Conversation (${extractedText.length} characters)</summary>
                     <div class="extracted-text-container">
                         ${extractedText.substring(0, 2000)}
                         ${extractedText.length > 2000 ? '\n\n... (truncated for display, full text sent to AI)' : ''}
                     </div>
-                </details>
                 </details>
             </div>
         `;
@@ -261,7 +272,9 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
             html += '</div>';
         }
 
+        console.log('[SalesAgent] Rendering HTML, length:', html.length);
         content.innerHTML = html;
+        console.log('[SalesAgent] HTML rendered successfully');
 
         // Add click handlers for message templates
         document.querySelectorAll('.message-template').forEach((template, index) => {
@@ -301,6 +314,7 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
 
 
     } catch (error) {
+        console.error('[SalesAgent] Error during analysis:', error);
         content.innerHTML = `<div class="error-state">Error: ${error.message}</div>`;
     } finally {
         btn.disabled = false;
